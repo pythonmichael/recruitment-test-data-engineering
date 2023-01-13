@@ -38,7 +38,7 @@ docker compose exec database mysql --host=database --user=codetest --password=sw
 To start up the ETL application.
 
 ```
-docker compose up dataloader
+docker compose run dataloader driver local:///opt/application/dataloader.py
 ```
 
 ### Cleaning up
