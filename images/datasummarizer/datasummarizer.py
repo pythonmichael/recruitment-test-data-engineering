@@ -49,6 +49,8 @@ summary = query_table(query)\
 summary.show()
 
 # write data to json
-summary.write.mode("overwrite").json("/data/summary_output.json")
+# conversion to pandas to have a file instead of a folder with files
+summary.toPandas().to_json("/data/summary_output.json", orient="records")
+#summary.repartition(1).write.mode("overwrite").json("/data/summary_output.json")
 
 
