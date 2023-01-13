@@ -1,7 +1,6 @@
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import col,to_date
-from pyspark import SparkConf
-import sys,logging,os
+import sys,logging
 import pymysql
 
 # Logging configuration
@@ -13,7 +12,7 @@ logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 logger.addHandler(handler)
 
-#.config("spark.jars", "/opt/spark/jars/mysql-connector-java-8.0.30.jar")
+# Creating spark session
 spark = SparkSession.builder.appName("data_loader").master("local").getOrCreate()
 spark.sparkContext.setLogLevel("ERROR")
 logger.info("Starting spark application")
@@ -26,7 +25,6 @@ url = f"jdbc:mysql://{host}:{port}/{db}"
 user = "codetest"
 password = "swordfish"
 driver = "com.mysql.cj.jdbc.Driver"
-
 
 # JDBC connection used for table truncation
 con = pymysql.connect(host = host, port = port, user = user, passwd = password, db = db)

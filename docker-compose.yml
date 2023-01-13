@@ -18,6 +18,11 @@ services:
   dataloader:
     image: dataloader
     build: images/dataloader
-    #command: ["spark-submit ./dataloader.py"]
+    volumes:
+      - ./data:/data
+      
+  datasummarizer:
+    image: datasummarizer
+    build: images/datasummarizer
     volumes:
       - ./data:/data
