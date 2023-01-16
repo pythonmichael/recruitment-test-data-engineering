@@ -1,10 +1,11 @@
 from pyspark.sql import SparkSession
 import sys,logging
 from pyspark.sql.functions import lit
+import py4j
 
 # Logging configuration
 formatter = logging.Formatter('[%(asctime)s] %(levelname)s @ line %(lineno)d: %(message)s')
-handler = logging.StreamHandler(sys.stdout)
+handler = logging.FileHandler('/logs/datasummarizer.log',mode='a')
 handler.setLevel(logging.INFO)
 handler.setFormatter(formatter)
 logger = logging.getLogger()
@@ -40,17 +41,25 @@ inner join cities on people.place_of_birth_id = cities.id
 inner join counties on cities.county_id = counties.id
 group by country"""
 
-summary = query_table(query)\
-    .groupBy(lit(1))\
-    .pivot("country")\
-    .sum("count")\
-    .drop("1")
+try:
+    logger.info("Connecting to the database...")
+    summary = query_table(query)\
+        .groupBy(lit(1))\
+        .pivot("country")\
+        .sum("count")\
+        .drop("1")
 
-summary.show()
+    # write data to json
+    # conversion to pandas to have a file instead of a folder with files
+    summary.toPandas().to_json("/data/summary_output.json", orient="records")
+    #summary.repartition(1).write.mode("overwrite").json("/data/summary_output.json")
 
-# write data to json
-# conversion to pandas to have a file instead of a folder with files
-summary.toPandas().to_json("/data/summary_output.json", orient="records")
-#summary.repartition(1).write.mode("overwrite").json("/data/summary_output.json")
+    logger.info("Closing the application")
 
+except py4j.protocol.Py4JJavaError as e:
+    print('An error occurred while executing Spark code. See the log file for more info.')
+    logger.exception(str(e))
+except Exception as e:
+    print("An error occurred while running the application. See the log file for more info.")
+    logger.exception("An error occurred while running the application.")
 

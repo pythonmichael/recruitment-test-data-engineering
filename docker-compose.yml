@@ -20,9 +20,11 @@ services:
     build: images/dataloader
     volumes:
       - ./data:/data
+      - ./logs:/logs
       
   datasummarizer:
     image: datasummarizer
     build: images/datasummarizer
     volumes:
       - ./data:/data
+      - ./logs:/logs
