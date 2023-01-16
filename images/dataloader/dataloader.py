@@ -3,6 +3,7 @@ from pyspark.sql.functions import col,to_date
 import sys,logging
 import pymysql
 import py4j
+import lib.db_functions as func
 
 # Logging configuration
 formatter = logging.Formatter('[%(asctime)s] %(levelname)s @ line %(lineno)d: %(message)s')
@@ -26,28 +27,7 @@ url = f"jdbc:mysql://{host}:{port}/{db}"
 user = "codetest"
 password = "swordfish"
 driver = "com.mysql.cj.jdbc.Driver"
-
-# Function to write a dataframe to a mysql table
-def write_table(dataframe, table_name):
-    dataframe.write.format("jdbc").option("url", url)\
-    .option("driver", driver)\
-    .option("dbtable", table_name)\
-    .option("user", user).option("password", password)\
-    .mode("append")\
-    .save()
-
-# Function to query a mysql table
-def query_table(query):
-    df = spark.read.format("jdbc").option("url", url)\
-    .option("driver", driver)\
-    .option("query", query)\
-    .option("user", user).option("password", password)\
-    .load()
-    return df
-
-# Function to truncate a mysql table
-def truncate_table(table):
-    cursor.execute(f"truncate table {table}")
+connection_info = (url,user,password,driver)
 
 try:
     # JDBC connection used for table truncation
@@ -55,9 +35,9 @@ try:
     con = pymysql.connect(host = host, port = port, user = user, passwd = password, db = db)
     cursor = con.cursor()
     cursor.execute("SET FOREIGN_KEY_CHECKS = 0")
-    truncate_table("people")
-    truncate_table("cities")
-    truncate_table("counties")
+    func.truncate_table("people", cursor)
+    func.truncate_table("cities", cursor)
+    func.truncate_table("counties", cursor)
     cursor.execute("SET FOREIGN_KEY_CHECKS = 1")
     con.close()
 
@@ -70,10 +50,10 @@ try:
     counties = places_raw.select("county","country").distinct()\
         .withColumnRenamed("county","name")
 
-    write_table(counties, "counties")
+    func.write_table(counties, "counties", connection_info)
 
     # Read the mysql counties table to retrieve the primary keys
-    counties_tbl = query_table("select id, name as county, country from counties")
+    counties_tbl = func.query_table("select id, name as county, country from counties", connection_info, spark)
 
     # Create the counties dataframe and write it to the mysql table
     cities = places_raw.select("city","county","country")\
@@ -82,15 +62,15 @@ try:
         .withColumnRenamed("city","name")\
         .withColumnRenamed("id","county_id")
 
-    write_table(cities, "cities")
+    func.write_table(cities, "cities", connection_info)
 
-    cities_tbl = query_table("select id, name as city from cities")
+    cities_tbl = func.query_table("select id, name as city from cities", connection_info, spark)
 
     people = people_raw.join(cities_tbl, people_raw.place_of_birth == cities_tbl.city)\
         .drop("place_of_birth", "city")\
         .withColumnRenamed("id","place_of_birth_id")
 
-    write_table(people, "people")
+    func.write_table(people, "people", connection_info)
 
     logger.info("Closing the application")
 
